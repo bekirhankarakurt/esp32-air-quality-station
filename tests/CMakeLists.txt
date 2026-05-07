@@ -1,0 +1,6 @@
+set(AQ_TESTS crc sensirion drivers moving_average air_quality telemetry config backoff station sim)
+foreach(name IN LISTS AQ_TESTS)
+  add_executable(test_${name} test_${name}.cpp)
+  target_link_libraries(test_${name} PRIVATE aqsim aq_warnings)
+  add_test(NAME ${name} COMMAND test_${name})
+endforeach()
