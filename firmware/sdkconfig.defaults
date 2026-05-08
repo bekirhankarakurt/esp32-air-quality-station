@@ -1,0 +1,10 @@
+# 1 kHz tick so sensor conversion delays are not rounded to 10 ms.
+CONFIG_FREERTOS_HZ=1000
+# The sampling loop runs in the main task.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=6144
+# Firmware is exception-free and RTTI-free.
+CONFIG_COMPILER_CXX_EXCEPTIONS=n
+CONFIG_COMPILER_CXX_RTTI=n
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10

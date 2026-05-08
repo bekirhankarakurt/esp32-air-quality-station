@@ -1,0 +1,76 @@
+menu "Air Quality Station"
+
+    config AQ_WIFI_SSID
+        string "Wi-Fi SSID"
+        default "myssid"
+        help
+            Network name of the access point to join.
+
+    config AQ_WIFI_PASSWORD
+        string "Wi-Fi password"
+        default "mypassword"
+        help
+            WPA2/WPA3 passphrase. Leave empty for an open network.
+
+    config AQ_TARGET_IP
+        string "Telemetry target IPv4 address"
+        default "192.168.1.100"
+        help
+            Host running aq_receiver. Use x.x.x.255 to broadcast on the subnet.
+            Default for the NVS-stored setting; can be changed from the web page.
+
+    config AQ_TARGET_PORT
+        int "Telemetry target UDP port"
+        range 1 65535
+        default 47800
+
+    config AQ_SAMPLE_PERIOD_MS
+        int "Sample / publish period (ms)"
+        range 1000 3600000
+        default 5000
+        help
+            The SCD41 delivers a new CO2 value every 5 s; shorter periods
+            re-publish the previous CO2 value.
+
+    choice AQ_TELEMETRY_FORMAT
+        prompt "Telemetry format"
+        default AQ_FORMAT_BINARY
+
+        config AQ_FORMAT_BINARY
+            bool "Binary (52-byte TLMY packet)"
+        config AQ_FORMAT_JSON
+            bool "JSON line"
+        config AQ_FORMAT_BOTH
+            bool "Both (two datagrams per sample)"
+    endchoice
+
+    config AQ_FILTER_WINDOW
+        int "Moving-average window (samples)"
+        range 1 32
+        default 6
+
+    config AQ_ALTITUDE_M
+        int "Altitude above sea level for CO2 compensation (m)"
+        range 0 3000
+        default 0
+
+    config AQ_I2C_SDA_GPIO
+        int "I2C SDA GPIO"
+        default 8 if IDF_TARGET_ESP32S3
+        default 21
+
+    config AQ_I2C_SCL_GPIO
+        int "I2C SCL GPIO"
+        default 9 if IDF_TARGET_ESP32S3
+        default 22
+
+    config AQ_I2C_FREQ_HZ
+        int "I2C clock (Hz)"
+        range 10000 400000
+        default 100000
+
+    config AQ_WEB_SERVER
+        bool "Enable the built-in web page"
+        default y
+
+endmenu
