@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    name: Host (${{ matrix.compiler }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc
+            cxx: g++
+          - compiler: clang
+            cxx: clang++
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DAQ_WERROR=ON
+      - name: Build
+        run: cmake --build build
+      - name: Unit tests
+        run: ctest --test-dir build --output-on-failure
+      - name: Simulator -> receiver smoke test
+        run: scripts/smoke_test.sh build
+
+  sanitizers:
+    name: Host (ASan + UBSan)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAQ_WERROR=ON -DAQ_SANITIZE=ON
+      - name: Build
+        run: cmake --build build
+      - name: Unit tests
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --test-dir build --output-on-failure
+      - name: Simulator -> receiver smoke test
+        run: scripts/smoke_test.sh build
+
+  static-analysis:
+    name: Static analysis (cppcheck + clang-tidy)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends cppcheck clang-tidy
+      - name: cppcheck
+        run: >
+          cppcheck --enable=warning,style,performance,portability --std=c++17 --error-exitcode=1
+          --inline-suppr --suppress=missingIncludeSystem --suppress=unusedFunction
+          -I lib/include -I sim/include -I apps/common --quiet lib/src sim/src apps
+      - name: clang-tidy
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++ -DAQ_BUILD_TESTS=OFF
+          clang-tidy -p build --quiet lib/src/*.cpp sim/src/*.cpp apps/*/main.cpp
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install gcovr
+        run: pipx install gcovr==8.2
+      - name: Build and test with coverage
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAQ_COVERAGE=ON -DAQ_BUILD_APPS=OFF
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+      - name: Report
+        run: gcovr --root . --filter 'lib/' --filter 'sim/' --print-summary --fail-under-line 90 build
+
+  firmware:
+    name: Firmware (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    container: espressif/idf:v5.3.1
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [esp32, esp32s3]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: bash
+        working-directory: firmware
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py set-target ${{ matrix.target }}
+          idf.py build
+      - name: Size
+        shell: bash
+        working-directory: firmware
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py size
