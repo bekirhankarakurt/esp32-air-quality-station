@@ -42,9 +42,10 @@ SensorError send_command(I2cBus& bus, std::uint8_t address, std::uint16_t comman
 }
 
 SensorError send_command(I2cBus& bus, std::uint8_t address, std::uint16_t command, std::uint16_t argument) noexcept {
-    std::array<std::uint8_t, 2 + kWordSize> buf{static_cast<std::uint8_t>(command >> 8U),
-                                                static_cast<std::uint8_t>(command & 0xFFU)};
-    encode_word(argument, &buf[2]);
+    std::array<std::uint8_t, 2 + kWordSize> buf{};
+    buf[0] = static_cast<std::uint8_t>(command >> 8U);
+    buf[1] = static_cast<std::uint8_t>(command & 0xFFU);
+    encode_word(argument, buf.data() + 2);
     return from_bus(bus.write(address, buf.data(), buf.size()));
 }
 
