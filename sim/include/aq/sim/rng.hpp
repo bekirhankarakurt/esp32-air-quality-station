@@ -1,5 +1,5 @@
 /// @file rng.hpp
-/// @brief Small deterministic PRNG (xoshiro128**-style SplitMix seeding) for reproducible simulations.
+/// @brief Small deterministic PRNG (SplitMix64) for reproducible simulations.
 #pragma once
 
 #include <cmath>
@@ -7,7 +7,7 @@
 
 namespace aq::sim {
 
-/// Deterministic across compilers and standard libraries (unlike <random> distributions).
+/// Deterministic across compilers and standard libraries (unlike std::normal_distribution).
 class Rng {
 public:
     explicit constexpr Rng(std::uint64_t seed) noexcept : state_(seed) {}
