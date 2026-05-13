@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    name: Firmware (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    container: espressif/idf:v5.3.1
+    strategy:
+      matrix:
+        target: [esp32, esp32s3]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: bash
+        working-directory: firmware
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py set-target ${{ matrix.target }}
+          idf.py build
+      - name: Collect images
+        shell: bash
+        run: |
+          mkdir -p dist
+          b=firmware/build
+          cp "$b/bootloader/bootloader.bin" "dist/aq-station-${{ matrix.target }}-bootloader.bin"
+          cp "$b/partition_table/partition-table.bin" "dist/aq-station-${{ matrix.target }}-partition-table.bin"
+          cp "$b/air_quality_station.bin" "dist/aq-station-${{ matrix.target }}-app.bin"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.target }}
+          path: dist/*
+
+  host:
+    name: Host tools (linux-x86_64)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and test
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAQ_WERROR=ON
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+      - name: Package
+        run: |
+          name="aq-station-host-${GITHUB_REF_NAME}-linux-x86_64"
+          mkdir -p "$name" dist
+          cp build/aq_simulator build/aq_receiver README.md LICENSE CHANGELOG.md "$name/"
+          strip "$name/aq_simulator" "$name/aq_receiver"
+          tar -czf "dist/$name.tar.gz" "$name"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: host
+          path: dist/*
+
+  publish:
+    name: GitHub Release
+    needs: [firmware, host]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - name: Release notes from CHANGELOG
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '/^## \[/{p = index($0, "[" v "]") > 0; next} p' CHANGELOG.md > notes.md
+          test -s notes.md
+          cat notes.md
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag
