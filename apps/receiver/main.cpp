@@ -175,9 +175,10 @@ void print_stats(const Stats& s) {
         std::fprintf(stderr, " malformed-json=%llu", static_cast<unsigned long long>(s.bad_json));
         any = true;
     }
-    std::fprintf(stderr, "%s; lost %llu, reordered %llu\n", any ? "" : " none",
-                 static_cast<unsigned long long>(s.bin_seq.gaps + s.json_seq.gaps),
-                 static_cast<unsigned long long>(s.bin_seq.reordered + s.json_seq.reordered));
+    const std::uint64_t lost = s.bin_seq.gaps + s.json_seq.gaps;
+    const std::uint64_t reordered = s.bin_seq.reordered + s.json_seq.reordered;
+    std::fprintf(stderr, "%s; lost %llu, reordered %llu\n", any ? "" : " none", static_cast<unsigned long long>(lost),
+                 static_cast<unsigned long long>(reordered));
 }
 
 }  // namespace
@@ -191,7 +192,7 @@ int main(int argc, char** argv) {
     std::signal(SIGINT, on_signal);
     std::signal(SIGTERM, on_signal);
 
-    aqhost::UdpSocket sock;
+    const aqhost::UdpSocket sock;
     if (!sock.valid() || !sock.bind_any(opt.port)) {
         std::perror("aq_receiver: bind");
         return 1;

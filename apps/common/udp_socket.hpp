@@ -41,7 +41,7 @@ public:
     [[nodiscard]] bool valid() const noexcept { return fd_ >= 0; }
 
     /// Bind to 0.0.0.0:@p port (SO_REUSEADDR set).
-    [[nodiscard]] bool bind_any(std::uint16_t port) noexcept {
+    [[nodiscard]] bool bind_any(std::uint16_t port) const noexcept {
         const int one = 1;
         ::setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
         sockaddr_in addr{};

@@ -30,12 +30,6 @@ void put_u64(std::uint8_t* p, std::uint64_t v) noexcept {
     }
 }
 
-void put_f32(std::uint8_t* p, float v) noexcept {
-    std::uint32_t bits = 0;
-    static_assert(sizeof(bits) == sizeof(v), "float must be IEEE-754 binary32");
-    std::memcpy(&bits, &v, sizeof(bits));
-    put_u32(p, bits);
-}
 
 std::uint16_t get_u16(const std::uint8_t* p) noexcept {
     return static_cast<std::uint16_t>((static_cast<std::uint16_t>(p[0]) << 8U) | p[1]);
@@ -64,7 +58,18 @@ float get_f32(const std::uint8_t* p) noexcept {
     return v;
 }
 
-bool same_bits(float a, float b) noexcept { return std::memcmp(&a, &b, sizeof(float)) == 0; }
+std::uint32_t bits_of(float v) noexcept {
+    std::uint32_t bits = 0;
+    std::memcpy(&bits, &v, sizeof(bits));
+    return bits;
+}
+
+bool same_bits(float a, float b) noexcept { return bits_of(a) == bits_of(b); }
+
+void put_f32(std::uint8_t* p, float v) noexcept {
+    static_assert(sizeof(std::uint32_t) == sizeof(float), "float must be IEEE-754 binary32");
+    put_u32(p, bits_of(v));
+}
 
 constexpr std::uint8_t kMaxLevel = static_cast<std::uint8_t>(AirLevel::Hazardous);
 

@@ -1,0 +1,31 @@
+---
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  clang-analyzer-*,
+  cppcoreguidelines-init-variables,
+  cppcoreguidelines-special-member-functions,
+  cppcoreguidelines-virtual-class-destructor,
+  misc-const-correctness,
+  misc-misplaced-const,
+  misc-redundant-expression,
+  misc-unused-parameters,
+  modernize-use-nodiscard,
+  modernize-use-override,
+  modernize-use-nullptr,
+  modernize-use-using,
+  performance-*,
+  readability-container-size-empty,
+  readability-make-member-function-const,
+  readability-redundant-*,
+  readability-simplify-boolean-expr
+WarningsAsErrors: '*'
+HeaderFilterRegex: '(lib|sim|apps)/.*'
+FormatStyle: none
+CheckOptions:
+  - key: misc-const-correctness.AnalyzeValues
+    value: true
+  - key: misc-const-correctness.WarnPointersAsValues
+    value: false
+...

@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
     std::signal(SIGINT, on_signal);
     std::signal(SIGTERM, on_signal);
 
-    aqhost::UdpSocket sock;
+    const aqhost::UdpSocket sock;
     if (!sock.valid()) {
         std::perror("socket");
         return 1;

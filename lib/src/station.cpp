@@ -70,7 +70,7 @@ void Station::sample_thermo() noexcept {
 }
 
 void Station::sample_co2(std::uint64_t timestamp_ns) noexcept {
-    SensorError err = SensorError::None;
+    SensorError err = SensorError::Bus;
     if (scd_running_) {
         const auto ready = scd_.data_ready();
         err = ready.error;
@@ -85,8 +85,6 @@ void Station::sample_co2(std::uint64_t timestamp_ns) noexcept {
                 last_co2_ns_ = timestamp_ns;
             }
         }
-    } else {
-        err = SensorError::Bus;
     }
     if (err == SensorError::None) {
         record_ok(scd_health_);

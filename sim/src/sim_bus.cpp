@@ -1,6 +1,7 @@
 #include "aq/sim/sim_bus.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include "aq/scd41.hpp"
 #include "aq/sensirion.hpp"
@@ -111,7 +112,7 @@ void SimScd41::update(std::uint64_t now_ms) noexcept {
         // Module self-heating: the on-board SHT4x reads warm and correspondingly dry.
         const double t = truth.temperature_c + 1.6 + 0.05 * rng.normal();
         const double rh = std::clamp(truth.humidity_pct * 0.9 + 0.3 * rng.normal(), 0.0, 100.0);
-        sensirion::encode_word(static_cast<std::uint16_t>(co2 + 0.5), &frame_[0]);
+        sensirion::encode_word(static_cast<std::uint16_t>(std::lround(co2)), &frame_[0]);
         sensirion::encode_word(sensirion::celsius_to_ticks(static_cast<float>(t)), &frame_[3]);
         sensirion::encode_word(sensirion::rh_to_ticks(static_cast<float>(rh)), &frame_[6]);
         ready_ = true;
