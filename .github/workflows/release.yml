@@ -32,7 +32,7 @@ jobs:
           cp "$b/bootloader/bootloader.bin" "dist/aq-station-${{ matrix.target }}-bootloader.bin"
           cp "$b/partition_table/partition-table.bin" "dist/aq-station-${{ matrix.target }}-partition-table.bin"
           cp "$b/air_quality_station.bin" "dist/aq-station-${{ matrix.target }}-app.bin"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: firmware-${{ matrix.target }}
           path: dist/*
@@ -54,7 +54,7 @@ jobs:
           cp build/aq_simulator build/aq_receiver README.md LICENSE CHANGELOG.md "$name/"
           strip "$name/aq_simulator" "$name/aq_receiver"
           tar -czf "dist/$name.tar.gz" "$name"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: host
           path: dist/*
