@@ -1,0 +1,52 @@
+name: Docs and coverage
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends doxygen graphviz
+          pipx install gcovr==8.2
+      - name: API documentation
+        run: doxygen Doxyfile
+      - name: Coverage
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DAQ_COVERAGE=ON -DAQ_BUILD_APPS=OFF
+          cmake --build build
+          ctest --test-dir build --output-on-failure
+          mkdir -p site/coverage
+          gcovr --root . --filter 'lib/' --filter 'sim/' build \
+            --html-details site/coverage/index.html --html-title "esp32-air-quality-station coverage" \
+            --json-summary coverage.json --print-summary
+          python3 scripts/coverage_badge.py coverage.json site/coverage/badge.json
+      - name: Assemble site
+        run: cp -r docs/api/html/. site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
